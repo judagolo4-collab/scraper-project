@@ -1,0 +1,50 @@
+{
+  "pais": "Colombia",
+  "institucion": "Camara",
+  "url": "https://www.camara.gov.co/secretaria/proyectos-de-ley#menu",
+  "selenium": {
+    "wait_time": 10,
+    "driver_path": "/opt/homebrew/bin/chromedriver",
+    "chromium_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  },
+  "selectors": {
+    "tabla_proyectos": "table tbody tr",
+    "paginacion_siguiente": "button.pagina-btn[data-pagina='next']",
+    "paginacion_numeros": "button.pagina-num",
+    "fecha_radicacion_xpath": "//strong[contains(text(), 'Fecha de Radicación')]",
+    "objeto_proyecto_xpath": "//strong[contains(text(), 'Objeto del proyecto')]/following-sibling::p[1]",
+    "pdf_documento": "div.pl-pub-item a[href*='.pdf']",
+    "pdf_documento_alt": "//a[contains(text(), 'Ver Documento')]",
+    "gaceta_link": "//a[contains(text(), 'Gaceta')]"
+  },
+  "pagination": {
+    "next_button": "button.pagina-btn[data-pagina='next']",
+    "click_delay": 2
+  },
+  "log_level": "INFO",
+  "limits": {
+    "max_pages": null,
+    "max_projects_per_page": 100,
+    "request_delay": 1
+  },
+  "campos": {
+    "basicos": [
+      "numero_camara",
+      "numero_senado",
+      "titulo",
+      "tipo",
+      "autores",
+      "estado",
+      "origen",
+      "comision",
+      "legislatura"
+    ],
+    "detalle": [
+      "fecha_radicacion",
+      "resumen",
+      "url_pdf",
+      "url_gaceta"
+    ]
+  }
+}
+

@@ -1,0 +1,16 @@
+# Airflow
+logs/
+*.log
+*.pyc
+__pycache__/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Airflow DB
+airflow.db
+airflow.cfg
+webserver_config.py
+unittests.cfg
+
