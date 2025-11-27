@@ -14,6 +14,8 @@ Ejecuta el proceso ETL para todos los países configurados (Colombia y Perú) en
 
 <img width="693" height="483" alt="imagen" src="https://github.com/user-attachments/assets/da5cd202-e420-4deb-9da9-21a294f17a6d" />
 
+<img width="2360" height="1036" alt="imagen" src="https://github.com/user-attachments/assets/f3bde461-3dbd-45a7-8904-84897f6e1783" />
+
 
 **Pasos del Pipeline:**
 1.  **Extract**: Llama al `Scraper Service` vía HTTP para obtener los datos crudos.
