@@ -8,8 +8,12 @@ Sistema de orquestación para la ingesta, procesamiento y almacenamiento de dato
 
 Actualmente el sistema cuenta con un DAG principal modular y escalable:
 
+
 ### `multi_country_scraper`
 Ejecuta el proceso ETL para todos los países configurados (Colombia y Perú) en paralelo.
+
+<img width="693" height="483" alt="imagen" src="https://github.com/user-attachments/assets/da5cd202-e420-4deb-9da9-21a294f17a6d" />
+
 
 **Pasos del Pipeline:**
 1.  **Extract**: Llama al `Scraper Service` vía HTTP para obtener los datos crudos.
