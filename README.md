@@ -8,7 +8,8 @@ Sistema automatizado para **extraer, clasificar y almacenar proyectos de ley** d
 
 ## 🎯 Arquitectura General
 
-[AQUÍ VA LA IMAGEN DE LA ARQUITECTURA]
+<img width="1786" height="765" alt="imagen" src="https://github.com/user-attachments/assets/c362c19a-79ea-4594-bcbc-439fda26b29e" />
+
 
 <!-- Agregar imagen mostrando: Scraper API → S3 → Airflow → PostgreSQL -->
 
@@ -136,6 +137,9 @@ open http://localhost:8000/docs
 **Ubicación**: `airflow/dags/congreso/legislative_projects_etl.py`
 
 **Objetivo**: Extraer proyectos de ley, almacenarlos en S3 y PostgreSQL de forma incremental.
+
+<img width="404" height="609" alt="imagen" src="https://github.com/user-attachments/assets/133c0dba-eb8b-4952-8602-8cb746622333" />
+
 
 ### Flujo de Trabajo
 
@@ -400,6 +404,3 @@ Para contribuir al proyecto:
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Crea un Pull Request
 
----
-
-**Creado con ❤️ usando FastAPI, Airflow, Selenium y Gemini AI**
