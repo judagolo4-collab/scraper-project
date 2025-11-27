@@ -30,6 +30,64 @@ Esta decisión de diseño es intencional y ofrece ventajas críticas:
 
 ---
 
+## 🧩 Patrones de Diseño & Herencia en Scrapers
+
+Para mantener el código limpio, escalable y fácil de mantener, utilizamos un fuerte patrón de **Herencia y Polimorfismo**. No escribimos scrapers desde cero para cada país; extendemos funcionalidades base.
+
+### Jerarquía de Clases
+
+```mermaid
+classDiagram
+    BaseScraper <|-- SeleniumScraper
+    BaseScraper <|-- AjaxScraper
+    BaseScraper <|-- HTMLScraper
+    
+    SeleniumScraper <|-- CamaraColombiaSelenium
+    AjaxScraper <|-- CamaraColombiaAjax
+    HTMLScraper <|-- CongresoPeruScraper
+
+    class BaseScraper{
+        +config
+        +logger
+        +save_result()
+        +scrape()*
+    }
+    
+    class SeleniumScraper{
+        +driver
+        +wait_for_element()
+        +extract_text_safe()
+    }
+    
+    class AjaxScraper{
+        +session
+        +post_request()
+        +get_nonce()
+    }
+
+    class HTMLScraper{
+        +httpx_client
+        +parse_soup()
+    }
+```
+
+### ¿Por qué este diseño?
+
+1.  **Código DRY (Don't Repeat Yourself)**:
+    *   La lógica de manejo de errores, logging, reintentos y estandarización de salida vive en `BaseScraper`.
+    *   La lógica de manejo de navegadores (Chrome driver, waits, clicks) vive en `SeleniumScraper`.
+    *   La lógica de peticiones HTTP rápidas y parsing vive en `AjaxScraper` y `HTMLScraper`.
+
+2.  **Fácil Extensión**:
+    *   ¿Nuevo país que usa JavaScript? Hereda de `SeleniumScraper`.
+    *   ¿Nuevo país estático? Hereda de `HTMLScraper`.
+    *   Solo implementas el método `scrape()` y `parse_item()` con los selectores específicos.
+
+3.  **Mantenibilidad**:
+    *   Si mejora la forma de rotar User-Agents en `BaseScraper`, **todos** los scrapers de todos los países se benefician automáticamente.
+
+---
+
 ## 🚀 Inicio Rápido
 
 Todo el sistema está contenerizado con Docker.
