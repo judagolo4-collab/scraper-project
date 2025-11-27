@@ -1,0 +1,7 @@
+# Airflow requirements
+# NOTA: psycopg2 ya viene con Airflow, no lo instalamos aquí
+boto3==1.34.0
+requests==2.31.0
+pandas==2.1.4
+python-dotenv==1.0.0
+

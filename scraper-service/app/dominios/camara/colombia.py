@@ -5,6 +5,7 @@ import asyncio
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from ...scrapers.selenium import SeleniumScraper
+from ...scrapers.helpers import DateParser, TextExtractor, LinkExtractor, TableExtractor
 
 
 class CamaraColumbiaScraper(SeleniumScraper):
@@ -25,21 +26,10 @@ class CamaraColumbiaScraper(SeleniumScraper):
         super().__init__(config)
         self.legislatura_filter = legislatura_filter
         self.selectors = config.get('selectors', {})
-        self.fecha_inicio = self._parse_date(fecha_inicio) if fecha_inicio else None
+        self.fecha_inicio = DateParser.parse_date(fecha_inicio) if fecha_inicio else None
         
         if self.fecha_inicio:
             self.logger.info(f"📅 Filtro de fecha activo: Procesando proyectos desde {self.fecha_inicio.strftime('%d/%m/%Y')}")
-
-    def _parse_date(self, date_str: str):
-        """Convierte string de fecha a datetime"""
-        from datetime import datetime
-        try:
-            # Soportar formatos DD/MM/YYYY y DD-MM-YYYY
-            date_str = date_str.replace('-', '/')
-            return datetime.strptime(date_str, '%d/%m/%Y')
-        except ValueError:
-            self.logger.error(f"❌ Formato de fecha inválido: {date_str}. Use DD-MM-YYYY")
-            return None
     
     async def scrape(self) -> List[Dict[str, Any]]:
         """
@@ -141,7 +131,7 @@ class CamaraColumbiaScraper(SeleniumScraper):
                         
                         # Verificar filtro de fecha
                         if self.fecha_inicio and proyecto_data.get('fecha_radicacion'):
-                            fecha_rad = self._parse_date(proyecto_data['fecha_radicacion'])
+                            fecha_rad = DateParser.parse_date(proyecto_data['fecha_radicacion'])
                             if fecha_rad and fecha_rad < self.fecha_inicio:
                                 self.logger.info(f"🛑 Proyecto con fecha {fecha_rad.strftime('%d/%m/%Y')} es anterior al filtro {self.fecha_inicio.strftime('%d/%m/%Y')}. Deteniendo scraping.")
                                 raise StopIteration("Fecha límite alcanzada")
@@ -235,86 +225,45 @@ class CamaraColumbiaScraper(SeleniumScraper):
             # Esperar a que cargue el contenido
             await asyncio.sleep(2)
             
-            # Extraer fecha de radicación - buscar en el texto de la página
-            try:
-                # Usamos el texto del body que ya obtuvimos o lo obtenemos de nuevo
-                if 'page_text' not in locals():
-                    page_text = self.driver.find_element(By.TAG_NAME, 'body').text
-                
-                # Buscar patrón de fecha después de "Fecha de Radicación"
-                if 'Fecha de Radicación' in page_text:
-                    # Buscar todas las fechas en el texto
-                    import re
-                    # Buscamos fechas DD/MM/YYYY que estén cerca de "Fecha de Radicación"
-                    # Una forma simple es buscar en las líneas siguientes
-                    lines = page_text.split('\n')
-                    found_date = False
-                    for i, line in enumerate(lines):
-                        if 'Fecha de Radicación' in line:
-                            # Buscar en las siguientes 5 líneas
-                            for j in range(1, 6):
-                                if i + j < len(lines):
-                                    next_line = lines[i + j]
-                                    match = re.search(r'\d{2}/\d{2}/\d{4}', next_line)
-                                    if match:
-                                        detail_data['fecha_radicacion'] = match.group(0)
-                                        found_date = True
-                                        break
-                            if found_date:
-                                break
-                    
-                    if not found_date:
-                        detail_data['fecha_radicacion'] = None
-                else:
-                    detail_data['fecha_radicacion'] = None
-            except Exception as e:
-                self.logger.debug(f"Error extrayendo fecha: {e}")
+            # Obtener el texto completo de la página
+            page_text = self.driver.find_element(By.TAG_NAME, 'body').text
+            
+            # Extraer fecha de radicación usando helper
+            fecha = TextExtractor.extract_text_from_lines(page_text, 'Fecha de Radicación', lines_after=1)
+            if fecha:
+                fecha_match = DateParser.extract_date_from_text(fecha)
+                detail_data['fecha_radicacion'] = fecha_match
+            else:
                 detail_data['fecha_radicacion'] = None
             
-            # Extraer objeto del proyecto (resumen) - buscar en el texto de la página
-            try:
-                page_text = self.driver.find_element(By.TAG_NAME, 'body').text
-                if 'Título' in page_text:
-                    lines = page_text.split('\n')
-                    for i, line in enumerate(lines):
-                        if line.strip() == 'Título' and i + 1 < len(lines):
-                            # La línea siguiente al "Título" es el resumen
-                            detail_data['resumen'] = lines[i + 1].strip()
-                            break
-                    if 'resumen' not in detail_data:
-                        detail_data['resumen'] = None
-                else:
-                    detail_data['resumen'] = None
-            except Exception as e:
-                self.logger.debug(f"Error extrayendo resumen: {e}")
-                detail_data['resumen'] = None
+            # Extraer resumen/título usando helper
+            resumen = TextExtractor.extract_text_from_lines(page_text, 'Título', lines_after=1)
+            detail_data['resumen'] = resumen
             
-            # Extraer enlace al PDF del proyecto
-            try:
-                pdf_link = self.driver.find_element(By.CSS_SELECTOR, 
-                    'div.pl-pub-item a[href*=".pdf"]'
-                )
-                detail_data['url_pdf'] = pdf_link.get_attribute('href')
-                self.logger.debug(f"📄 PDF encontrado: {detail_data['url_pdf']}")
-            except NoSuchElementException:
+            # Extraer enlace al PDF usando helper
+            pdf_url, _ = LinkExtractor.extract_link(
+                self.driver,
+                'div.pl-pub-item a[href*=".pdf"]',
+                By.CSS_SELECTOR
+            )
+            
+            if not pdf_url:
                 # Intentar selector alternativo
-                try:
-                    pdf_link = self.driver.find_element(By.XPATH,
-                        "//a[contains(text(), 'Ver Documento')]"
-                    )
-                    detail_data['url_pdf'] = pdf_link.get_attribute('href')
-                except:
-                    detail_data['url_pdf'] = None
-                    self.logger.warning("⚠️ No se encontró enlace al PDF")
-            
-            # Extraer enlace a la Gaceta
-            try:
-                gaceta_link = self.driver.find_element(By.XPATH,
-                    "//a[contains(text(), 'Gaceta')]"
+                pdf_url, _ = LinkExtractor.extract_link(
+                    self.driver,
+                    "//a[contains(text(), 'Ver Documento')]",
+                    By.XPATH
                 )
-                detail_data['url_gaceta'] = gaceta_link.get_attribute('href')
-            except:
-                detail_data['url_gaceta'] = None
+            
+            detail_data['url_pdf'] = pdf_url
+            
+            # Extraer enlace a la Gaceta usando helper
+            gaceta_url, _ = LinkExtractor.extract_link(
+                self.driver,
+                "//a[contains(text(), 'Gaceta')]",
+                By.XPATH
+            )
+            detail_data['url_gaceta'] = gaceta_url
             
         except Exception as e:
             self.logger.error(f"❌ Error extrayendo detalles de {url}: {str(e)}")

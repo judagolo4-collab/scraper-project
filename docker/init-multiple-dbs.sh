@@ -1,22 +1,16 @@
 #!/bin/bash
+
+# Script para crear múltiples bases de datos en PostgreSQL
 set -e
 
-# Script para crear múltiples bases de datos
-# Se ejecuta al iniciar el contenedor de Postgres si las BDs no existen
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    -- Base de datos para proyectos de ley
+    CREATE DATABASE proyectos_ley;
+    GRANT ALL PRIVILEGES ON DATABASE proyectos_ley TO $POSTGRES_USER;
 
-function create_user_and_database() {
-	local database=$1
-	echo "  Creating user and database '$database'"
-	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-	    CREATE DATABASE $database;
-	    GRANT ALL PRIVILEGES ON DATABASE $database TO $POSTGRES_USER;
+    -- Base de datos para metadata del scraper
+    CREATE DATABASE scraper_metadata;
+    GRANT ALL PRIVILEGES ON DATABASE scraper_metadata TO $POSTGRES_USER;
 EOSQL
-}
 
-if [ -n "$POSTGRES_MULTIPLE_DATABASES" ]; then
-	echo "Multiple database creation requested: $POSTGRES_MULTIPLE_DATABASES"
-	for db in $(echo $POSTGRES_MULTIPLE_DATABASES | tr ',' ' '); do
-		create_user_and_database $db
-	done
-	echo "Multiple databases created"
-fi
+echo "✅ Bases de datos adicionales creadas: proyectos_ley, scraper_metadata"

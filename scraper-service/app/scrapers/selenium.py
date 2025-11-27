@@ -26,6 +26,8 @@ class SeleniumScraper(BaseScraper):
     
     def setup_driver(self):
         """Configurar driver de Selenium para ejecución headless."""
+        from .user_agents import get_random_user_agent
+        
         chrome_options = Options()
         
         # Opciones obligatorias para modo HEADLESS (sin ventana visible)
@@ -35,10 +37,10 @@ class SeleniumScraper(BaseScraper):
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         
-        # Opciones recomendadas para evitar detecciones de bot
-        chrome_options.add_argument(
-            'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        )
+        # User agent rotativo para evitar detección
+        user_agent = get_random_user_agent()
+        chrome_options.add_argument(f'user-agent={user_agent}')
+        self.logger.debug(f"🎭 User-Agent: {user_agent[:50]}...")
         
         # Configuración del servicio
         try:
