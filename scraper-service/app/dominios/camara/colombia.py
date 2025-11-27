@@ -2,6 +2,7 @@
 
 from typing import List, Dict, Any, Optional
 import asyncio
+from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from ...scrapers.selenium import SeleniumScraper
@@ -14,7 +15,18 @@ class CamaraColumbiaScraper(SeleniumScraper):
     Extrae proyectos de ley desde: https://www.camara.gov.co/secretaria/proyectos-de-ley
     """
     
-    def __init__(self, config: Dict[str, Any], legislatura_filter: Optional[str] = None, fecha_inicio: Optional[str] = None):
+    def __init__(
+        self, 
+        config: Dict[str, Any], 
+        legislatura_filter: Optional[str] = None, 
+        fecha_inicio: Optional[str] = None,
+        max_pages: Optional[int] = None,
+        tipo: Optional[str] = None,
+        estado: Optional[str] = None,
+        origen: Optional[str] = None,
+        comision: Optional[str] = None,
+        **kwargs  # Ignorar otros parámetros
+    ):
         """
         Inicializa el scraper de Colombia.
         
@@ -22,11 +34,16 @@ class CamaraColumbiaScraper(SeleniumScraper):
         :param legislatura_filter: Filtro opcional por legislatura (ej: "2023-2024")
         :param fecha_inicio: Filtro opcional por fecha de inicio (DD-MM-YYYY). 
                              Se detendrá el scraper al encontrar proyectos anteriores a esta fecha.
+        :param max_pages: Límite de páginas (se ignora si config tiene limits.max_pages)
+        :param tipo, estado, origen, comision: Filtros para compatibilidad (solo funcionan con AJAX)
         """
         super().__init__(config)
         self.legislatura_filter = legislatura_filter
         self.selectors = config.get('selectors', {})
         self.fecha_inicio = DateParser.parse_date(fecha_inicio) if fecha_inicio else None
+        
+        # Los filtros adicionales se ignoran en Selenium (solo funcionan con AJAX)
+        # Pero los aceptamos para mantener compatibilidad de API
         
         if self.fecha_inicio:
             self.logger.info(f"📅 Filtro de fecha activo: Procesando proyectos desde {self.fecha_inicio.strftime('%d/%m/%Y')}")
@@ -46,7 +63,7 @@ class CamaraColumbiaScraper(SeleniumScraper):
             
             # Navegar a la URL principal
             self.driver.get(self.url)
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)  # OPTIMIZADO: reducido de 3s a 2s
             
             # Esperar a que cargue la tabla
             self.wait_for_selector(self.selectors.get('tabla_proyectos', 'table tbody tr'))
@@ -85,7 +102,7 @@ class CamaraColumbiaScraper(SeleniumScraper):
                     break
                 
                 current_page += 1
-                await asyncio.sleep(2)  # Pausa entre páginas
+                await asyncio.sleep(1)  # OPTIMIZADO: reducido de 2s a 1s
             
             self.logger.info(f"✨ Scraping finalizado. Total de proyectos extraídos: {total_proyectos}")
             
@@ -99,20 +116,39 @@ class CamaraColumbiaScraper(SeleniumScraper):
     async def _extract_projects_from_page(self) -> List[Dict[str, Any]]:
         """
         Extrae todos los proyectos de la página actual.
+        OPTIMIZADO: Extrae HTML y procesa con BeautifulSoup para mayor velocidad.
         """
         proyectos = []
         
         try:
-            # Obtener todas las filas de la tabla
-            rows_selector = self.selectors.get('tabla_proyectos', 'table tbody tr')
-            rows = self.driver.find_elements(By.CSS_SELECTOR, rows_selector)
+            # OPTIMIZACIÓN: Extraer HTML completo de una vez con BeautifulSoup
+            from bs4 import BeautifulSoup
+            page_html = self.driver.page_source
+            soup = BeautifulSoup(page_html, 'html.parser')
             
+            # Buscar tabla por ID o clase
+            table = soup.find('table', id='listado-pley')
+            if not table:
+                table = soup.select_one('table.listado-pley')
+            if not table:
+                # Fallback: buscar primera tabla disponible
+                all_tables = soup.find_all('table')
+                table = all_tables[0] if all_tables else None
+            
+            if not table:
+                self.logger.warning("⚠️ No se encontró la tabla de proyectos")
+                return proyectos
+            
+            rows = table.find('tbody').find_all('tr') if table.find('tbody') else []
             self.logger.info(f"🔍 Encontradas {len(rows)} filas en la tabla")
+            
+            # Guardar referencia al driver para páginas de detalle
+            original_window = self.driver.current_window_handle
             
             for idx, row in enumerate(rows, 1):
                 try:
-                    # Extraer datos básicos de la fila
-                    proyecto_data = self._extract_row_data(row)
+                    # Extraer datos básicos de la fila (ahora con BeautifulSoup)
+                    proyecto_data = self._extract_row_data_bs4(row)
                     
                     # Aplicar filtro de legislatura si existe
                     if self.legislatura_filter:
@@ -125,9 +161,15 @@ class CamaraColumbiaScraper(SeleniumScraper):
                     detalle_url = proyecto_data.get('url_detalle')
                     
                     if detalle_url:
-                        # Navegar a la página de detalle para obtener más información
+                        # OPTIMIZACIÓN: Navegar a detalle solo si es necesario
                         detalle_data = await self._extract_detail_page(detalle_url)
                         proyecto_data.update(detalle_data)
+                        
+                        # Volver a la ventana original
+                        try:
+                            self.driver.switch_to.window(original_window)
+                        except:
+                            pass
                         
                         # Verificar filtro de fecha
                         if self.fecha_inicio and proyecto_data.get('fecha_radicacion'):
@@ -200,6 +242,35 @@ class CamaraColumbiaScraper(SeleniumScraper):
         
         return data
     
+    def _extract_row_data_bs4(self, row) -> Dict[str, Any]:
+        """
+        Extrae datos de una fila usando BeautifulSoup (más rápido).
+        """
+        cells = row.find_all('td')
+        data = {}
+        
+        if len(cells) >= 9:
+            data['numero_camara'] = cells[0].get_text(strip=True)
+            data['numero_senado'] = cells[1].get_text(strip=True)
+            
+            # Extraer título y URL
+            titulo_cell = cells[2]
+            data['titulo'] = titulo_cell.get_text(strip=True).replace('Ver detalle', '').strip()
+            
+            link = titulo_cell.find('a')
+            data['url_detalle'] = link.get('href') if link and link.has_attr('href') else None
+            
+            data['tipo'] = cells[3].get_text(strip=True)
+            data['autores'] = cells[4].get_text(strip=True)
+            data['estado'] = cells[5].get_text(strip=True)
+            data['origen'] = cells[6].get_text(strip=True)
+            data['comision'] = cells[7].get_text(strip=True)
+            data['legislatura'] = cells[8].get_text(strip=True)
+        else:
+            self.logger.warning(f"⚠️ Fila con columnas inesperadas: {len(cells)}")
+        
+        return data
+    
     async def _extract_detail_page(self, url: str) -> Dict[str, Any]:
         """
         Navega a la página de detalle y extrae información adicional.
@@ -216,14 +287,14 @@ class CamaraColumbiaScraper(SeleniumScraper):
         try:
             # Abrir enlace en nueva pestaña
             self.driver.execute_script(f"window.open('{url}', '_blank');")
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)  # OPTIMIZADO: reducido de 2s a 1s
             
             # Cambiar a la nueva pestaña
             windows = self.driver.window_handles
             self.driver.switch_to.window(windows[-1])
             
             # Esperar a que cargue el contenido
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)  # OPTIMIZADO: reducido de 2s a 1s
             
             # Obtener el texto completo de la página
             page_text = self.driver.find_element(By.TAG_NAME, 'body').text

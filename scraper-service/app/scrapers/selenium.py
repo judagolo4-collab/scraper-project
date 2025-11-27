@@ -37,6 +37,17 @@ class SeleniumScraper(BaseScraper):
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--window-size=1920,1080')
         
+        # OPTIMIZACIONES para mayor velocidad
+        chrome_options.add_argument('--disable-images')  # No cargar imágenes
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-plugins')
+        chrome_options.add_argument('--blink-settings=imagesEnabled=false')  # Deshabilitar imágenes
+        chrome_options.add_experimental_option("prefs", {
+            "profile.managed_default_content_settings.images": 2,  # No cargar imágenes
+            "profile.default_content_setting_values.notifications": 2,  # No notificaciones
+            "profile.managed_default_content_settings.stylesheets": 2,  # No CSS (opcional)
+        })
+        
         # User agent rotativo para evitar detección
         user_agent = get_random_user_agent()
         chrome_options.add_argument(f'user-agent={user_agent}')
@@ -154,6 +165,120 @@ class SeleniumScraper(BaseScraper):
         
         if scroll_count >= max_scrolls:
             self.logger.warning(f"⚠️ Límite de {max_scrolls} scrolls alcanzado.")
+    
+    # ====================================================================
+    # MÉTODOS ESENCIALES DE EXTRACCIÓN
+    # ====================================================================
+    
+    def find_element_safe(self, selector: str, by: By = By.CSS_SELECTOR, parent = None) -> Optional[Any]:
+        """
+        Busca un elemento de forma segura sin lanzar excepción.
+        
+        :param selector: Selector CSS/XPath
+        :param by: Tipo de selector
+        :param parent: Elemento padre (None = buscar desde driver)
+        :return: WebElement o None si no se encuentra
+        """
+        try:
+            return (parent or self.driver).find_element(by, selector)
+        except NoSuchElementException:
+            return None
+    
+    def find_elements_safe(self, selector: str, by: By = By.CSS_SELECTOR, parent = None) -> List[Any]:
+        """
+        Busca múltiples elementos de forma segura.
+        
+        :param selector: Selector CSS/XPath
+        :param by: Tipo de selector
+        :param parent: Elemento padre (None = buscar desde driver)
+        :return: Lista de WebElements (vacía si no encuentra)
+        """
+        try:
+            return (parent or self.driver).find_elements(by, selector)
+        except NoSuchElementException:
+            return []
+    
+    def extract_text_safe(self, selector: str, by: By = By.CSS_SELECTOR, parent = None, default: str = "") -> str:
+        """
+        Extrae texto de un elemento de forma segura.
+        
+        :param selector: Selector CSS/XPath
+        :param by: Tipo de selector
+        :param parent: Elemento padre
+        :param default: Valor por defecto si no se encuentra
+        :return: Texto extraído o default
+        """
+        element = self.find_element_safe(selector, by, parent)
+        return element.text.strip() if element else default
+    
+    def extract_attribute_safe(self, selector: str, attribute: str, by: By = By.CSS_SELECTOR, parent = None, default: Any = None) -> Any:
+        """
+        Extrae un atributo de un elemento de forma segura.
+        
+        :param selector: Selector CSS/XPath
+        :param attribute: Nombre del atributo (ej: 'href', 'class', 'id')
+        :param by: Tipo de selector
+        :param parent: Elemento padre
+        :param default: Valor por defecto si no se encuentra
+        :return: Valor del atributo o default
+        """
+        element = self.find_element_safe(selector, by, parent)
+        return element.get_attribute(attribute) if element else default
+    
+    async def click_element_safe(self, selector: str, by: By = By.CSS_SELECTOR, use_js: bool = True, wait_after: float = 1.0) -> bool:
+        """
+        Hace click en un elemento de forma segura.
+        
+        :param selector: Selector CSS/XPath
+        :param by: Tipo de selector
+        :param use_js: Usar JavaScript para el click (más confiable)
+        :param wait_after: Tiempo de espera después del click
+        :return: True si tuvo éxito, False si no
+        """
+        try:
+            element = self.find_element_safe(selector, by)
+            if not element:
+                return False
+            
+            if use_js:
+                self.driver.execute_script("arguments[0].click();", element)
+            else:
+                element.click()
+            
+            if wait_after:
+                await asyncio.sleep(wait_after)
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error haciendo click en '{selector}': {e}")
+            return False
+    
+    async def handle_popup(self, accept_selector: str = None, close_selector: str = None, wait_time: float = 2.0) -> bool:
+        """
+        Maneja popups o modales que aparecen en la página (cookies, avisos, etc).
+        
+        :param accept_selector: Selector del botón de aceptar/cerrar
+        :param close_selector: Selector alternativo para cerrar
+        :param wait_time: Tiempo de espera antes de buscar el popup
+        :return: True si se cerró el popup, False si no
+        """
+        try:
+            await asyncio.sleep(wait_time)
+            
+            if accept_selector:
+                return await self.click_element_safe(accept_selector, use_js=True)
+            
+            if close_selector:
+                return await self.click_element_safe(close_selector, use_js=True)
+            
+            return False
+        except Exception as e:
+            self.logger.debug(f"No se encontró popup: {e}")
+            return False
+    
+    # ====================================================================
+    # MÉTODO LEGACY (mantener por compatibilidad)
+    # ====================================================================
     
     def extract_link_and_type(self, element, selector_or_xpath: str, use_xpath: bool = False) -> Tuple[Optional[str], str]:
         """

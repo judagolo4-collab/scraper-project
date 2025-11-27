@@ -1,0 +1,39 @@
+{
+  "country": "peru",
+  "institution": "congreso",
+  "name": "Congreso de la República del Perú",
+  "base_url": "https://www2.congreso.gob.pe",
+  "url": "https://www2.congreso.gob.pe/Sicr/TraDocEstProc/CLProLey2011.nsf/Local%20Por%20Numero%20Inverso?OpenView",
+  "scraper_type": "selenium",
+  "limits": {
+    "max_pages": 10,
+    "per_page": 30,
+    "timeout": 10
+  },
+  "selectors": {
+    "table_container": "table",
+    "project_rows": "tr",
+    "numero": "td:nth-child(1) a",
+    "numero_link": "td:nth-child(1) a",
+    "fecha_ultima_reg": "td:nth-child(2)",
+    "fecha_presentacion": "td:nth-child(3)",
+    "estado": "td:nth-child(4)",
+    "titulo": "td:nth-child(5)",
+    "next_page_button": "img[alt='Next']",
+    "pagination": "table"
+  },
+  "detail_selectors": {
+    "numero_completo": "//td[contains(text(),'Número')]/following-sibling::td[1]",
+    "proponente": "//td[contains(text(),'Proponente')]/following-sibling::td[1]",
+    "grupo_parlamentario": "//td[contains(text(),'Grupo Parlamentario')]/following-sibling::td[1]",
+    "periodo": "//td[contains(text(),'Periodo Parlamentario')]/following-sibling::td[1]",
+    "legislatura": "//td[contains(text(),'Legislatura')]/following-sibling::td[1]",
+    "fecha_presentacion": "//td[contains(text(),'Fecha Presentación')]/following-sibling::td[1]",
+    "sumilla": "//td[contains(text(),'Sumilla')]/following-sibling::td[1]",
+    "pdf_link": "//a[contains(@href,'.pdf')]"
+  },
+  "date_format": "%d/%m/%Y",
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  }
+}

@@ -49,22 +49,38 @@ class ScraperFactory:
         scraper_class = self._scrapers[key]
         return scraper_class(config, **kwargs)
     
-    def create_by_country_institution(
+    def create_by_country(
         self,
         country: str,
-        institution: str,
         config: Dict[str, Any],
+        use_ajax: bool = False,
         **kwargs
     ) -> BaseScraper:
         """
-        Crea una instancia de scraper basado en país e institución.
+        Crea una instancia de scraper basado en país.
         
-        :param country: Nombre del país (ej: 'colombia')
-        :param institution: Institución (ej: 'camara', 'senado')
+        :param country: Nombre del país (ej: 'colombia', 'peru')
         :param config: Configuración del scraper
+        :param use_ajax: Si True, usa versión AJAX (más rápida) si está disponible
         :param kwargs: Argumentos adicionales
         :return: Instancia del scraper
         """
+        # Mapeo de países a instituciones por defecto
+        default_institutions = {
+            'colombia': 'camara',
+            'peru': 'congreso',
+            # Agregar más países aquí
+        }
+        
+        institution = default_institutions.get(country.lower(), 'camara')
+        
+        # Intentar versión AJAX si se solicita
+        if use_ajax:
+            ajax_key = f"{country.lower()}_{institution.lower()}_ajax"
+            if ajax_key in self._scrapers:
+                return self.create(ajax_key, config, **kwargs)
+        
+        # Usar versión normal (Selenium)
         key = f"{country.lower()}_{institution.lower()}"
         return self.create(key, config, **kwargs)
     
@@ -85,9 +101,13 @@ scraper_factory = ScraperFactory()
 def register_scrapers():
     """Registra automáticamente todos los scrapers disponibles"""
     from ..dominios.camara.colombia import CamaraColumbiaScraper
+    from ..dominios.camara.colombia_ajax import CamaraColombiaAjaxScraper
+    from ..dominios.congreso.peru import CongresoPeruScraper
     
     # Registrar scrapers existentes
-    scraper_factory.register('colombia_camara', CamaraColumbiaScraper)
+    scraper_factory.register('colombia_camara', CamaraColumbiaScraper)  # Selenium (lento pero completo)
+    scraper_factory.register('colombia_camara_ajax', CamaraColombiaAjaxScraper)  # AJAX (10-20x más rápido)
+    scraper_factory.register('peru_congreso', CongresoPeruScraper)  # Selenium
     
     # Aquí se pueden registrar más scrapers en el futuro:
     # scraper_factory.register('peru_congreso', PeruCongresoScraper)

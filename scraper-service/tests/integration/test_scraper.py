@@ -6,11 +6,13 @@ Ejecuta el scraping de solo 1 página para verificar que todo funciona.
 
 import asyncio
 import yaml
+import json
 import sys
 from pathlib import Path
 
-# Agregar el directorio app al path
-sys.path.insert(0, str(Path(__file__).parent))
+# Agregar el directorio raíz del proyecto al path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from app.dominios.camara.colombia import CamaraColumbiaScraper
 
@@ -18,10 +20,10 @@ from app.dominios.camara.colombia import CamaraColumbiaScraper
 async def test_scraper():
     """Prueba el scraper con límite de 1 página"""
     
-    # Cargar configuración
-    config_path = Path(__file__).parent.parent / "config" / "colombia.yaml"
+    # Cargar configuración desde la raíz del proyecto
+    config_path = Path(__file__).parent.parent.parent.parent / "config" / "colombia.json"
     with open(config_path, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+        config = json.load(f)
     
     print("=" * 80)
     print("🧪 PRUEBA DEL SCRAPER DE COLOMBIA - MODO LIMITADO (1 PÁGINA)")

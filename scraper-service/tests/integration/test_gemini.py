@@ -5,9 +5,11 @@ Script de prueba de integración con Gemini AI
 import asyncio
 import sys
 import os
+from pathlib import Path
 
-# Agregar el directorio padre al path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Agregar el directorio raíz del proyecto al path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from app.services.gemini_service import get_gemini_classifier
 

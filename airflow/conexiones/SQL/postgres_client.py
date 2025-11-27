@@ -18,7 +18,7 @@ class PostgresClient:
         
         :param database: Nombre de la base de datos
         """
-        self.host = os.getenv('POSTGRES_HOST', 'postgres')
+        self.host = os.getenv('POSTGRES_HOST', 'localhost')
         self.port = os.getenv('POSTGRES_PORT', '5432')
         self.user = os.getenv('POSTGRES_USER', 'airflow')
         self.password = os.getenv('POSTGRES_PASSWORD', 'airflow')

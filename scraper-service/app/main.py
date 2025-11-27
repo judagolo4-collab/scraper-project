@@ -30,7 +30,17 @@ app = FastAPI(
     title="Scraper de Proyectos de Ley",
     description="API para scraping de proyectos de ley de Colombia y otros países",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    openapi_tags=[
+        {
+            "name": "🔍 Scraping",
+            "description": "Endpoints para ejecutar scraping de proyectos de ley"
+        },
+        {
+            "name": "🤖 Gemini AI",
+            "description": "Endpoints relacionados con clasificación mediante Gemini AI"
+        }
+    ]
 )
 
 # Configurar CORS
@@ -42,8 +52,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir rutas
-app.include_router(routes.router, prefix="/api")
+# Incluir rutas con categorías
+app.include_router(routes.scraping_router, prefix="/api")
+app.include_router(routes.gemini_router, prefix="/api")
 
 
 @app.get("/")

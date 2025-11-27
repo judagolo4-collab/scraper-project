@@ -14,15 +14,20 @@ def test_api_endpoint():
     print("🧪 PRUEBA DEL ENDPOINT DE LA API")
     print("=" * 80)
     
-    url = "http://localhost:8000/api/scrape/colombia"
+    url = "http://localhost:8000/api/scrape/colombia/camara"
+    
+    # Parámetros query para limitar el scraping en tests
+    params = {
+        "max_pages": 1,
+        "classify": False  # Sin clasificación de Gemini para test rápido
+    }
     
     print(f"\n📡 Haciendo POST a: {url}")
-    print("⏳ Esto puede tomar algunos minutos...\n")
+    print(f"📋 Query params: {params}")
+    print("⏳ Esto debería tomar ~30 segundos...\n")
     
     try:
-        # Nota: En producción, esto scrapeará TODAS las páginas
-        # Para pruebas, el scraper está limitado a 1 página en test_scraper.py
-        response = requests.post(url, timeout=300)  # 5 minutos de timeout
+        response = requests.post(url, params=params, timeout=120)  # 2 minutos de timeout
         response.raise_for_status()
         
         data = response.json()
