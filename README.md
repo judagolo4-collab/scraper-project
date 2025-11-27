@@ -8,31 +8,8 @@ Plataforma ETL moderna y modular para la extracción, procesamiento y análisis 
 
 El proyecto sigue una arquitectura de **microservicios desacoplados**, separando la lógica de extracción (Scraping) de la orquestación (Airflow).
 
-```mermaid
-graph LR
-    subgraph Orchestration [Orquestación & ETL]
-        AF[Apache Airflow]
-        DB[(PostgreSQL)]
-        S3[(AWS S3 / LocalStack)]
-    end
+<img width="1678" height="732" alt="imagen" src="https://github.com/user-attachments/assets/ed12344e-7ff9-47f0-8fcf-34cdcb54eb97" />
 
-    subgraph Extraction [Capa de Extracción]
-        API[Scraper API Service]
-        Selenium[Selenium / Chrome]
-        BS4[BeautifulSoup / HTTPx]
-    end
-
-    subgraph AI [Inteligencia Artificial]
-        Gemini[Google Gemini AI]
-    end
-
-    AF -- "1. Trigger (HTTP)" --> API
-    API -- "2. Extract" --> Web[Sitios Web Congresos]
-    API -- "3. Classify" --> Gemini
-    API -- "4. Return Data" --> AF
-    AF -- "5. Store RAW" --> S3
-    AF -- "6. Store Structured" --> DB
-```
 
 ### ¿Por qué separar Airflow del Scraper?
 
