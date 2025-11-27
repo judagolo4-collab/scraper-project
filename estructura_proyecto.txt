@@ -1,0 +1,67 @@
+proyecto-scraper/
+├── docker/
+│   ├── docker-compose.yml          # Orquestación completa del stack
+│   ├── dockerfile
+│   ├── .env
+│   ├── .env.template              # Template de variables de entorno
+├── Makefile                   # Comandos comunes (setup, test, run)
+├── README.md                  # Documentación principal
+│
+├── scraper-service/           # Microservicio FastAPI
+│   ├── app/
+│   │   ├── main.py           # Entry point FastAPI
+│   │   ├── api/
+│   │   │   ├── routes.py     # Endpoints HTTP
+│   │   │   └── schemas.py    # Pydantic models
+│   │   ├── dominios/
+│   │   │   ├── senado/
+│   │   │   │   ├── colombia.py   # Scraper Colombia - Senado
+│   │   │   │   └── peru.py       # Scraper Perú - Senado
+│   │   │   └── camara/
+│   │   │       ├── colombia.py   # Scraper Colombia - Camara
+│   │   │       └── peru.py       # Scraper Perú - Camara
+│   │   ├── scrapers/
+│   │   │   ├── base.py       # Clase base abstracta - Funciones que todos pueden usar
+│   │   │   ├── selenium.py   # Clase que contiene funciones para manejar el navegador
+│   │   │   ├── html.py       # Clase que contiene funciones para manejar html
+│   │   │   ├── xml.py       # Clase que contiene funciones para manejar xml
+│   │   │   ├── http.py       # Clase que contiene funciones para manejar http
+│   │   ├── services/
+│   │   │   ├── gemini/
+│   │   │   │   └── gemini_client.py # Este lo usarian todos los proveedores que usen gemini
+│   │   ├── conexiones/
+│   │   │   ├── postgres/
+│   │   │   │   └── postgres_client.py # Este lo usarian todos los proveedores que usen postgres
+│   │   └── utils/
+│   │       ├── logging.py
+│   │       ├── retry.py
+│   │       └── user_agents.py
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── colombia/
+│   │   │   │   └── test_colombia.py
+│   │   │   └── peru/
+│   │   │       └── test_peru.py
+│   │   └── integration/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── pyproject.toml
+│
+├── database/                  # Configuración PostgreSQL
+│   ├── migrations/           # Migraciones Alembic
+│   │   ├── env.py
+│   │   ├── alembic.ini
+│   │   └── versions/
+│   │       └── 001_initial_schema.py
+│   ├── models/
+│   │   └── models.py         # SQLAlchemy models
+│   └── seeds/                # Datos iniciales (opcional)
+│
+├── config/                    # Configuraciones por país
+│   ├── colombia.yaml
+│   └── peru.yaml
+│
+└── docs/                      # Documentación
+    ├── architecture_phase1.png
+    ├── architecture_phase4.png
+    └── api_documentation.md
