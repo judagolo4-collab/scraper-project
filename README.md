@@ -161,6 +161,6 @@ Todo el sistema está contenerizado con Docker.
 *   **FastAPI**: Framework para el servicio de scraping.
 *   **Apache Airflow**: Orquestación de pipelines ETL.
 *   **PostgreSQL**: Base de datos relacional principal.
-*   **LocalStack (S3)**: Almacenamiento de objetos (Data Lake).
+*   **LocalStack (S3)**: Almacenamiento de objetos (Data Lake). La decision de usar este proveedor fue por la facilidad de replicar el ambiente cloud en local con la herramienta.
 *   **Google Gemini AI**: Clasificación inteligente de proyectos por sector económico.
 *   **Docker**: Contenerización completa.
