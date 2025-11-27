@@ -1,0 +1,26 @@
+airflow/                   # Configuración y DAGs de Airflow
+│   ├── dags/
+|   |   |-- Congreso/
+|   |   |   |-- colombia_scraping_dag.py
+|   |   |   |-- peru_scraping_dag.py
+│   │   └── common/
+│   │       ├── tasks.py       # Tareas reutilizables
+│   │       └── utils.py
+│   ├── config/
+│   │   └── airflow.cfg
+│   ├── conexiones/
+│   │   |-- AWS/
+│   │   |   |-- credentials.py
+│   │   |   |-- s3_client.py
+│   │   |   |-- redshift_client.py
+│   │   |   |-- rds_client.py
+│   │   └── GCP/
+│   │   |   |-- credentials.py
+│   │   |   |-- cloud_storage_client.py
+│   │   |   |-- bigquery_client.py
+│   │   └── SQL/
+│   │       |-- credentials.py
+│   │       |-- postgres_client.py # Este lo usarian todos los proveedores que usen postgres
+│   │   └── scraper-service/
+│   │       |-- credentials.py
+│   │       |-- http_client.py # Este lo usarian todos los proveedores que usen fastapi
